@@ -1,4 +1,7 @@
 TMPDIR ?= /tmp
+ARCH ?= amd64
+GRPC_DIR = /go/src/github.com/IBM/FfDL
+DOCKER_BUILD = docker run -i --rm --volume $${PWD}:$(GRPC_DIR) -w $(GRPC_DIR) golang:latest sh -c
 UNAME = $(shell uname)
 UNAME_SHORT = $(shell if [ "$(UNAME)" = "Darwin" ]; then echo 'osx'; else echo 'linux'; fi)
 SERVICES = metrics lcm trainer restapi jobmonitor
@@ -38,6 +41,9 @@ endif
 
 
 # Main targets
+install-deps:
+	go get github.com/Masterminds/glide
+	glide -q install
 
 usage:            ## Show this help
 	@fgrep -h " ## " $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
@@ -136,8 +142,8 @@ $(addprefix build-, $(SERVICES)): build-%: %
 	@SERVICE_NAME=$< BINARY_NAME=main make .build-service
 
 build-cli:
-	cd ./cli/ && (CGO_ENABLED=0 go build -ldflags "-s -w" -a -installsuffix cgo -o bin/ffdl-osx; \
-		CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -a -installsuffix cgo -o bin/ffdl-linux)
+	$(DOCKER_BUILD) 'make install-deps && cd ./cli/ && (CGO_ENABLED=0 go build -ldflags "-s -w" -a -installsuffix cgo -o bin/ffdl-osx; \
+		CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags "-s -w" -a -installsuffix cgo -o bin/ffdl-linux)'
 
 build-cli-opt:
 	make build-cli
@@ -210,7 +216,7 @@ test-submit:      ## Submit test training job
 # Helper targets
 
 .build-service:
-	(cd ./$(SERVICE_NAME)/ && (test ! -e main.go || CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -a -installsuffix cgo -o bin/$(BINARY_NAME)))
+	($(DOCKER_BUILD) 'make install-deps && cd ./$(SERVICE_NAME)/ && (test ! -e main.go || CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags "-s -w" -a -installsuffix cgo -o bin/$(BINARY_NAME))')
 
 .docker-build:
 	(full_img_name=$(IMAGE_NAME_PREFIX)$(IMAGE_NAME); \

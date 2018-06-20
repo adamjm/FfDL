@@ -14,17 +14,18 @@
 # limitations under the License.
 #
 
-
+ARCH ?= amd64
 GRPC_DIR = /go/src/github.ibm.com/deep-learning-platform/grpc-health-checker
 
 install-deps:
+	go get github.com/Masterminds/glide
 	glide -q install
 
 build-local: clean
 	go build -o bin/grpc-health-checker
 
 build-x86-64: clean
-	CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/grpc-health-checker
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags "-s" -a -installsuffix cgo -o bin/grpc-health-checker
 
 clean:
 	rm -rf bin/

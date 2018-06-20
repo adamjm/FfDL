@@ -23,7 +23,7 @@ IMAGE_TAG_UBUNTU?=ubuntu16.04
 all: build push
 
 build-deps:
-	cd build/grpc-health-checker && make install-deps build-x86-64
+	cd build/grpc-health-checker && make install-deps build-in-docker
 
 build: build-deps build-ubuntu build-alpine
 
