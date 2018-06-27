@@ -14,13 +14,29 @@
 # limitations under the License.
 #
 
-GRPC_GIT=git@github.ibm.com:deep-learning-platform/grpc-parameter-server.git
+REPO ?= docker.io/ffdl
+WHOAMI ?= $(shell whoami)
+IMAGE_TAG ?= user-$(WHOAMI)
+
+IMAGE_NAME?=logcollector_base:${IMAGE_TAG}
+
+DOCKER_OPTIONS ?=
+
+build-base-docker:
+	echo "Building ${IMAGE_NAME}"
+	docker build -q ${DOCKER_OPTIONS} -t ${IMAGE_NAME} -f Dockerfile .
+	echo "Success building ${IMAGE_NAME}"
+
+push-base-docker:
+	echo "Pushing ${IMAGE_NAME}"
+	docker push ${IMAGE_NAME}
+
 
 all: build push
 
-build: build-simple_log_collector build-emetrics_file build-regex_extractor build-tensorboard-all
+build: build-base-docker build-simple_log_collector build-emetrics_file build-regex_extractor #build-tensorboard-all
 
-push: push-simple_log_collector push-emetrics_file push-regex_extractor push-tensorboard-all
+push: push-simple_log_collector push-emetrics_file push-regex_extractor #push-tensorboard-all
 
 build-simple_log_collector:
 	$(MAKE) -C ./simple_log_collector build

@@ -1,4 +1,7 @@
 TMPDIR ?= /tmp
+ARCH ?= amd64
+GRPC_DIR = /go/src/github.com/IBM/FfDL
+DOCKER_BUILD = docker run -i --rm --volume $${PWD}:$(GRPC_DIR) -w $(GRPC_DIR) golang:latest sh -c
 UNAME = $(shell uname)
 UNAME_SHORT = $(shell if [ "$(UNAME)" = "Darwin" ]; then echo 'osx'; else echo 'linux'; fi)
 SERVICES = metrics lcm trainer restapi jobmonitor
@@ -57,6 +60,9 @@ endif
 
 
 # Main targets
+install-deps:
+	go get github.com/Masterminds/glide
+	glide -q install
 
 usage:            ## Show this help
 	@fgrep -h " ## " $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
@@ -235,6 +241,9 @@ test-job-submit:      ## Submit test training job
         exit 1);
 
 
+docker-push: docker-push-base $(addprefix docker-push-, $(IMAGES)) docker-push-ui docker-push-logcollectors
+
+
 deploy:           ## Deploy the services to Kubernetes
 	@docker images
 	@echo $(DOCKER_REPO)
@@ -404,8 +413,8 @@ $(addprefix build-, $(SERVICES)): build-%: %
 	@SERVICE_NAME=$< BINARY_NAME=main make .build-service
 
 build-cli:
-	cd ./cli/ && (CGO_ENABLED=0 go build -ldflags "-s -w" -a -installsuffix cgo -o bin/ffdl-osx; \
-		CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -a -installsuffix cgo -o bin/ffdl-linux)
+	$(DOCKER_BUILD) 'make install-deps && cd ./cli/ && (CGO_ENABLED=0 go build -ldflags "-s -w" -a -installsuffix cgo -o bin/ffdl-osx; \
+		CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags "-s -w" -a -installsuffix cgo -o bin/ffdl-linux)'
 
 build-cli-opt:
 	make build-cli
@@ -417,25 +426,31 @@ build-cli-opt:
 $(addprefix docker-build-, $(IMAGES)): docker-build-%: %
 	@IMAGE_NAME=$< make .docker-build
 
+$(addprefix docker-push-, $(IMAGES)): docker-push-%: %
+	@IMAGE_NAME=$< make .docker-push
+
 docker-build-ui:
 	mkdir -p build; test -e dashboard || (git clone $(UI_REPO) build/ffdl-ui; ln -s build/ffdl-ui dashboard)
 	(cd dashboard && (if [ "$(VM_TYPE)" = "minikube" ]; then eval $$(minikube docker-env); fi; \
 		docker build -q -t $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$(IMAGE_NAME_PREFIX)ui:$(IMAGE_TAG) .; \
 		(test ! `which docker-squash` || docker-squash -t $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$(IMAGE_NAME_PREFIX)ui $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$(IMAGE_NAME_PREFIX)ui)))
 
+docker-push-ui:
+	(cd dashboard && (if [ "$(VM_TYPE)" = "minikube" ]; then eval $$(minikube docker-env); fi; \
+		docker push  $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$(IMAGE_NAME_PREFIX)ui ))
+
 docker-build-base:
-	if [ "$(VM_TYPE)" = "minikube" ]; then \
-		eval $$(minikube docker-env); \
-	fi; \
-	(cd etc/dlaas-service-base; make build)
+	(cd etc/dlaas-service-base; GOARCH=$(ARCH) REPO=$(DOCKER_REPO)/$(DOCKER_NAMESPACE) make build)
+
+docker-push-base:
+	(cd etc/dlaas-service-base; REPO=$(DOCKER_REPO)/$(DOCKER_NAMESPACE) make push)
 
 docker-build-logcollectors:
-	if [ "$(VM_TYPE)" = "minikube" ]; then \
-		eval $$(minikube docker-env); \
-	fi; \
-	cd metrics/log_collectors && IMAGE_TAG=$(IMAGE_TAG) && make build-simple_log_collector build-emetrics_file build-regex_extractor build-tensorboard-all
+	cd metrics/log_collectors && REPO=$(DOCKER_REPO)/$(DOCKER_NAMESPACE) IMAGE_TAG=$(IMAGE_TAG) make build #-simple_log_collector build-emetrics_file build-regex_extractor #build-tensorboard-all
 
-
+docker-push-logcollectors:
+	cd metrics/log_collectors && REPO=$(DOCKER_REPO)/$(DOCKER_NAMESPACE) IMAGE_TAG=$(IMAGE_TAG) make push #-simple_log_collector build-emetrics_file build-regex_extractor #build-tensorboard-all
+	
 test-push-data-s3:      ## Test
 	@# Pushes test data to S3 buckets.
 	@echo Pushing test data.
@@ -619,7 +634,7 @@ test-s3:
 
 
 .build-service:
-	(cd ./$(SERVICE_NAME)/ && (test ! -e main.go || CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -a -installsuffix cgo -o bin/$(BINARY_NAME)))
+	($(DOCKER_BUILD) 'make install-deps && cd ./$(SERVICE_NAME)/ && (test ! -e main.go || CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags "-s -w" -a -installsuffix cgo -o bin/$(BINARY_NAME))')
 
 .docker-build:
 	(full_img_name=$(IMAGE_NAME_PREFIX)$(IMAGE_NAME); \
@@ -629,6 +644,10 @@ test-s3:
 		fi; \
 		docker build -q -t $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$$full_img_name:$(IMAGE_TAG) .))
 
+.docker-push:
+	(full_img_name=$(IMAGE_NAME_PREFIX)$(IMAGE_NAME); \
+		cd ./$(IMAGE_DIR)/ && (if [ "$(VM_TYPE)" = "minikube" ]; then eval $$(minikube docker-env); fi; \
+			docker push $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$$full_img_name ))
 kubernetes-ip:
 	@if [ "$$CI" = "true" ]; then kubectl get nodes -o jsonpath='{ .items[0].status.addresses[?(@.type=="InternalIP")].address }'; \
 		elif [ "$(VM_TYPE)" = "vagrant" ]; then \

@@ -15,15 +15,16 @@
 #
 
 
-REPO=docker.io/ffdl
+REPO ?=docker.io/ffdl
 IMAGE_NAME=dlaas-service-base
-IMAGE_TAG_ALPINE?=alpine3.3
+IMAGE_TAG_ALPINE?=alpine3.6
 IMAGE_TAG_UBUNTU?=ubuntu16.04
+ARCH ?=amd64
 
 all: build push
 
 build-deps:
-	cd build/grpc-health-checker && make install-deps build-x86-64
+	cd build/grpc-health-checker && ARCH=$(ARCH) make build-in-docker
 
 build: build-deps build-ubuntu build-alpine
 

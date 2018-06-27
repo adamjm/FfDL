@@ -454,6 +454,7 @@ func constructLearnerContainer(req *service.JobDeploymentRequest, envVars []v1co
 	}
 	cmd = wrapCommand(command, learnerContainerName, sharedVolumeMount.MountPath, doCondExitWrite)
 
+
 	container := learner.Container{
 		Image: learner.Image{Framework: req.Framework, Version: req.Version, Tag: req.EnvVars["DLAAS_LEARNER_IMAGE_TAG"]},
 		Resources: learner.Resources{

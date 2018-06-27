@@ -14,20 +14,22 @@
 # limitations under the License.
 #
 
+ARCH ?= amd64
 
 GRPC_DIR = /go/src/github.com/IBM/FfDL/grpc-health-checker
 
 install-deps:
+	go get github.com/Masterminds/glide
 	glide -q install
 
 build-local: clean
 	go build -o bin/grpc-health-checker
 
 build-x86-64: clean
-	CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/grpc-health-checker
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags "-s" -a -installsuffix cgo -o bin/grpc-health-checker
 
 clean:
 	rm -rf bin/
 
 build-in-docker:
-	docker run -i --name grpc-health-checker --rm --volume $${PWD}:$(GRPC_DIR) -w $(GRPC_DIR) golang:latest sh -c "make install-deps build-x86-64 test"
+	docker run -i --name grpc-health-checker --rm --volume $${PWD}:$(GRPC_DIR) -w $(GRPC_DIR) golang:latest sh -c "ARCH=$(ARCH) make install-deps build-x86-64"
