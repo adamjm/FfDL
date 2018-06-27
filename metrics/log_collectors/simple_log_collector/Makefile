@@ -22,7 +22,7 @@ IMAGE_NAME?=${REPO}/log_collector:${IMAGE_TAG}
 
 all: build push
 
-DOCKER_OPTIONS ?=
+DOCKER_OPTIONS ?= --build-arg IMAGE_NAME=logcollector_base --build-arg VERSION_ID=$(IMAGE_TAG) 
 
 build:
 	cp -r ../training_data_service_client .

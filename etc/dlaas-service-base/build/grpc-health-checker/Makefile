@@ -31,4 +31,4 @@ clean:
 	rm -rf bin/
 
 build-in-docker:
-	docker run -i --name grpc-health-checker --rm --volume $${PWD}:$(GRPC_DIR) -w $(GRPC_DIR) golang:latest sh -c "make install-deps build-x86-64 test"
+	docker run -i --name grpc-health-checker --rm --volume $${PWD}:$(GRPC_DIR) -w $(GRPC_DIR) golang:latest sh -c "ARCH=$(ARCH) make install-deps build-x86-64"

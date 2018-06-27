@@ -1,8 +1,8 @@
 FROM node:8-alpine
 
 # install chromium for headless browser tests
-ENV CHROME_BIN=/usr/bin/chromium-browser
-RUN apk add --no-cache chromium udev ttf-freefont
+#ENV CHROME_BIN=/usr/bin/chromium-browser
+RUN apk add --no-cache udev ttf-freefont
 
 # set workdir
 WORKDIR /ffdl/ffdl-dashboard

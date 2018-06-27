@@ -20,7 +20,7 @@ IMAGE_TAG ?= user-$(WHOAMI)
 
 IMAGE_NAME?=${REPO}/regex_extractor:${IMAGE_TAG}
 
-DOCKER_OPTIONS ?=
+DOCKER_OPTIONS ?= --build-arg IMAGE_NAME=logcollector_base --build-arg VERSION_ID=$(IMAGE_TAG) 
 
 all: build push
 

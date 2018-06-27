@@ -146,7 +146,7 @@ func getResources(s *lcmService, logr *logger.LocLoggingEntry) (bool, *allocatab
 	}
 
 	// Set the resourceGPU to "nvidia.com/gpu" if you want to run your GPU workloads using device plugin.
-	var resourceGPU v1core.ResourceName = v1core.ResourceNvidiaGPU
+	var resourceGPU v1core.ResourceName = "nvidia.com/gpu"
 
 	//By querying nodes, determine the number of allocatable resources
 	for _, node := range nodes.Items {

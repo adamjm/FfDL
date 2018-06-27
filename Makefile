@@ -7,7 +7,7 @@ UNAME_SHORT = $(shell if [ "$(UNAME)" = "Darwin" ]; then echo 'osx'; else echo '
 SERVICES = metrics lcm trainer restapi jobmonitor
 IMAGES = metrics lcm trainer restapi jobmonitor controller databroker_objectstorage databroker_s3
 THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-DOCKER_REPO = docker.io
+DOCKER_REPO = mycluster.icp:8500#docker.io
 DOCKER_NAMESPACE = ffdl
 INVENTORY ?= ansible/envs/local/minikube.ini
 IMAGE_NAME_PREFIX = ffdl-
@@ -53,6 +53,9 @@ build: $(addprefix build-, $(SERVICES))
 
 docker-build:     ## Build the Docker images for all services
 docker-build: docker-build-base $(addprefix docker-build-, $(IMAGES)) docker-build-ui docker-build-logcollectors
+
+docker-push: docker-push-base $(addprefix docker-push-, $(IMAGES)) docker-push-ui docker-push-logcollectors
+
 
 deploy:           ## Deploy the services to Kubernetes
 	@# deploy the stack via helm
@@ -155,17 +158,30 @@ build-cli-opt:
 $(addprefix docker-build-, $(IMAGES)): docker-build-%: %
 	@IMAGE_NAME=$< make .docker-build
 
+$(addprefix docker-push-, $(IMAGES)): docker-push-%: %
+	@IMAGE_NAME=$< make .docker-push
+
 docker-build-ui:
 	mkdir -p build; test -e dashboard || (git clone $(UI_REPO) build/ffdl-ui; ln -s build/ffdl-ui dashboard)
 	(cd dashboard && (if [ "$(VM_TYPE)" = "minikube" ]; then eval $$(minikube docker-env); fi; \
 		docker build -q -t $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$(IMAGE_NAME_PREFIX)ui .; \
 		(test ! `which docker-squash` || docker-squash -t $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$(IMAGE_NAME_PREFIX)ui $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$(IMAGE_NAME_PREFIX)ui)))
 
+docker-push-ui:
+	(cd dashboard && (if [ "$(VM_TYPE)" = "minikube" ]; then eval $$(minikube docker-env); fi; \
+		docker push  $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$(IMAGE_NAME_PREFIX)ui ))
+
 docker-build-base:
-	(cd etc/dlaas-service-base; make build)
+	(cd etc/dlaas-service-base; GOARCH=$(ARCH) REPO=$(DOCKER_REPO)/$(DOCKER_NAMESPACE) make build)
+
+docker-push-base:
+	(cd etc/dlaas-service-base; REPO=$(DOCKER_REPO)/$(DOCKER_NAMESPACE) make push)
 
 docker-build-logcollectors:
-	cd metrics/log_collectors && IMAGE_TAG=$(IMAGE_TAG) make build-simple_log_collector build-emetrics_file build-regex_extractor build-tensorboard-all
+	cd metrics/log_collectors && REPO=$(DOCKER_REPO)/$(DOCKER_NAMESPACE) IMAGE_TAG=$(IMAGE_TAG) make build #-simple_log_collector build-emetrics_file build-regex_extractor #build-tensorboard-all
+
+docker-push-logcollectors:
+	cd metrics/log_collectors && REPO=$(DOCKER_REPO)/$(DOCKER_NAMESPACE) IMAGE_TAG=$(IMAGE_TAG) make push #-simple_log_collector build-emetrics_file build-regex_extractor #build-tensorboard-all
 
 # Test targets
 
@@ -223,6 +239,10 @@ test-submit:      ## Submit test training job
 		cd ./$(IMAGE_DIR)/ && (if [ "$(VM_TYPE)" = "minikube" ]; then eval $$(minikube docker-env); fi; \
 			docker build -q -t $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$$full_img_name .))
 
+.docker-push:
+	(full_img_name=$(IMAGE_NAME_PREFIX)$(IMAGE_NAME); \
+		cd ./$(IMAGE_DIR)/ && (if [ "$(VM_TYPE)" = "minikube" ]; then eval $$(minikube docker-env); fi; \
+			docker push $(DOCKER_REPO)/$(DOCKER_NAMESPACE)/$$full_img_name ))
 kubernetes-ip:
 	@if [ "$$CI" = "true" ]; then kubectl get nodes -o jsonpath='{ .items[0].status.addresses[?(@.type=="InternalIP")].address }'; \
 		elif [ "$(VM_TYPE)" = "vagrant" ]; then \
