@@ -44,4 +44,4 @@ push-alpine:
 push-ubuntu:
 	docker push ${REPO}/${IMAGE_NAME}:${IMAGE_TAG_UBUNTU}
 
-.PHONY: build push
+.PHONY: build push clean

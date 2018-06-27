@@ -15,7 +15,8 @@
 #
 
 ARCH ?= amd64
-GRPC_DIR = /go/src/github.ibm.com/deep-learning-platform/grpc-health-checker
+
+GRPC_DIR = /go/src/github.com/IBM/FfDL/grpc-health-checker
 
 install-deps:
 	go get github.com/Masterminds/glide

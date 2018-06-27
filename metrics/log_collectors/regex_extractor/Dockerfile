@@ -20,6 +20,7 @@ FROM ${IMAGE_NAME}:${VERSION_ID}
 
 # TODO: Just use community Python 3.6 image per conversation with Atin.
 
+
 RUN mkdir -p /scripts
 RUN mkdir -p /scripts/patterns
 RUN mkdir -p /scripts/log_collectors

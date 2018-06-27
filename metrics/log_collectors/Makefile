@@ -31,6 +31,7 @@ push-base-docker:
 	echo "Pushing ${IMAGE_NAME}"
 	docker push ${IMAGE_NAME}
 
+
 all: build push
 
 build: build-base-docker build-simple_log_collector build-emetrics_file build-regex_extractor #build-tensorboard-all
