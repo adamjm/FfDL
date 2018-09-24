@@ -29,3 +29,48 @@
   border-bottom: 1px solid #ddd;
   padding-bottom: 17px;
 }
+
+.submit_button {
+  background-color:#dddddd;
+  border-width: 1px;
+  border-color:#888888;
+}
+
+.submit_button:hover {
+  background-color: #cccccc;
+}
+
+.submit_button:active {
+  background-color: #dddddd;
+}
+
+button {
+  border-color: rgb(216, 216, 216) rgb(209, 209, 209) rgb(186, 186, 186);
+  border-style: solid;
+  border-width: 1px;
+  padding: 1px 7px 2px;
+  color: #000000;
+}
+
+.button:hover {
+  background-color: #dddddd;
+}
+
+.button:active {
+  background-color: #eeeeee;
+}
+
+.green_dot {
+  color:#00aa00;
+  font-size: 12px
+}
+
+.yellow_dot {
+  color:#dddd00;
+  font-size: 12px
+}
+
+.red_dot {
+  color:#ee0000;
+  font-size: 12px
+}
