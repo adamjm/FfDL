@@ -19,15 +19,12 @@ spec:
       containers:
       - name: prometheus
 {{ if eq .Values.arch "ppc64le" }}
-        image: ibmcom/prometheus-ppc64le:v1.7.1
+        image: ibmcom/prometheus-ppc64le:v2.3.1
 {{ else }}
         image: quay.io/prometheus/prometheus:v1.7.1
 {{ end }}
         args:
-          - '-storage.local.retention=72h'
-          - '-storage.local.memory-chunks=500000'
-          - '-config.file=/etc/prometheus/prometheus.yml'
-          - '-alertmanager.url=http://alertmanager:{{.Values.prometheus.alertmanager_port}}'
+          - '--config.file=/etc/prometheus/prometheus.yml'
         ports:
         - name: web
           containerPort: {{.Values.prometheus.port}}
